@@ -6,7 +6,7 @@
 
 ```bash
 git clone <GITHUB_REPOSITORY_URL>
-put in sihbackend
+put in side sihbackend folder or any wishname put all this in one folder
 
 
 
