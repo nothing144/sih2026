@@ -42,7 +42,7 @@ python manage.py migrate
 6. Create users
 
 Create:
-
+ev owner will only register..
 EV Owner → role = EV_OWNER
 Certified Tester → role = CERTIFIED_TESTER
 
