@@ -50,16 +50,20 @@ Certified Tester → role = CERTIFIED_TESTER
 
 from users.models import User
 
-tester2 = User.objects.create_user(
-    username="tester2",
-    email="tester2@example.com",
-    first_name="Tester",
-    last_name="Two",
-    phone="9876543210",
+tester = User.objects.create_user(
+    username="tester1",
+    email="tester@ev.com",
     password="Tester@12345",
-    role="CERTIFIED_TESTER"
+    first_name="Certified",
+    last_name="Tester",
+    phone="9999999999",
+    role="CERTIFIED_TESTER",
+    is_staff=True,
+    is_superuser=True,
+    is_active=True
 )
-print(tester2)
+
+print(tester)
 
 
 
