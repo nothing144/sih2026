@@ -9,7 +9,7 @@ from rest_framework.generics import get_object_or_404
 from .models import BatteryPassport
 from .serializers import BatteryPassportSerializer, PublicPassportVerificationSerializer
 
-from users.permissions import IsEVOwner, IsCertifiedTester
+from users.permissions import IsEVOwner, IsCertifiedTester, IsEVOwnerOrCertifiedTester
 import uuid
 
 # =========================
@@ -76,11 +76,19 @@ class BatteryPassportListView(generics.ListAPIView):
 
 class BatteryPassportDetailView(generics.RetrieveAPIView):
     serializer_class = BatteryPassportSerializer
-    permission_classes = [IsEVOwner]
+    permission_classes = [
+        IsAuthenticated,
+        IsEVOwnerOrCertifiedTester,
+    ]
 
     def get_queryset(self):
+        user = self.request.user
+        if user.role == "CERTIFIED_TESTER":
+            # Testers may view any passport they are reviewing
+            return BatteryPassport.objects.all()
+        # Owners may only view their own passports
         return BatteryPassport.objects.filter(
-            battery__owner=self.request.user
+            battery__owner=user
         )
 
 

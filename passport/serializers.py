@@ -33,6 +33,23 @@ class BatteryPassportSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+        read_only_fields = [
+            # Server-generated in BatteryPassportCreateView.perform_create
+            "passport_id",
+            "current_soh",
+            "safety_risk",
+            "degradation_factors",
+            "recommendation",
+            "second_life_status",
+            "certification_status",
+            # Set by tester verify/reject views
+            "verified_by",
+            "verified_at",
+            # Auto timestamps
+            "created_at",
+            "updated_at",
+        ]
+
 
 class PublicPassportVerificationSerializer(serializers.ModelSerializer):
     """
