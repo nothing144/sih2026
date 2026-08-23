@@ -26,3 +26,18 @@ class IsCertifiedTester(BasePermission):
             and request.user.role == "CERTIFIED_TESTER"
         )
 
+
+class IsEVOwnerOrCertifiedTester(BasePermission):
+    """
+    Allows access to EV Owners and Certified Testers.
+    Used for passport detail: owners read their own passports,
+    testers read passports they are reviewing.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in ("EV_OWNER", "CERTIFIED_TESTER")
+        )
+

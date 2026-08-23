@@ -9,6 +9,8 @@ from .views import (
     TesterProfileView,
 )
 
+from rest_framework_simplejwt.views import TokenRefreshView
+
 
 urlpatterns = [
 
@@ -30,6 +32,13 @@ urlpatterns = [
         "tester/login/",
         TesterLoginView.as_view(),
         name="tester-login"
+    ),
+
+    # Token Refresh
+    path(
+        "token/refresh/",
+        TokenRefreshView.as_view(),
+        name="token-refresh"
     ),
 
     # Profile
