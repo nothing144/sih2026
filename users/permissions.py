@@ -30,8 +30,9 @@ class IsCertifiedTester(BasePermission):
 class IsEVOwnerOrCertifiedTester(BasePermission):
     """
     Allows access to EV Owners and Certified Testers.
-    Used for passport detail: owners read their own passports,
-    testers read passports they are reviewing.
+    Used for passport detail: owners are limited to their own passports
+    (enforced by the view's queryset); certified testers can access
+    passports according to the existing tester permissions.
     """
 
     def has_permission(self, request, view):

@@ -45,6 +45,7 @@ class BatteryPassportSerializer(serializers.ModelSerializer):
             # Set by tester verify/reject views
             "verified_by",
             "verified_at",
+            "verification_notes",
             # Auto timestamps
             "created_at",
             "updated_at",
@@ -75,11 +76,7 @@ class PublicPassportVerificationSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = [
-    "id",
-    "passport_id",
-    "certification_status",
-    "verified_by",
-    "verified_at",
-    "created_at",
-    "updated_at",
-]
+            "passport_id",
+            "certification_status",
+            "verified_at",
+        ]

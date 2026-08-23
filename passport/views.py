@@ -84,12 +84,15 @@ class BatteryPassportDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         user = self.request.user
         if user.role == "CERTIFIED_TESTER":
-            # Testers may view any passport they are reviewing
-            return BatteryPassport.objects.all()
+            # Certified testers can access passports per existing tester
+            # permissions (verification queue / decisions review).
+            return BatteryPassport.objects.select_related(
+                "battery", "battery__owner"
+            )
         # Owners may only view their own passports
         return BatteryPassport.objects.filter(
             battery__owner=user
-        )
+        ).select_related("battery", "battery__owner")
 
 
 # =========================
@@ -105,7 +108,7 @@ class PassportVerificationListView(generics.ListAPIView):
             certification_status=(
                 BatteryPassport.CertificationStatus.PENDING_REVIEW
             )
-        )
+        ).select_related("battery", "battery__owner")
 
 
 class PassportDecisionsListView(generics.ListAPIView):
@@ -129,7 +132,7 @@ class PassportDecisionsListView(generics.ListAPIView):
 
         queryset = BatteryPassport.objects.filter(
             certification_status__in=decided_statuses
-        )
+        ).select_related("battery", "battery__owner")
 
         if status_param is not None:
             queryset = queryset.filter(certification_status=status_param)
