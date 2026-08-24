@@ -13,6 +13,45 @@ REQUIRED_COLUMNS = [
     "discharge_duration",
 ]
 
+# Columns surfaced as "Latest BMS Reading" by the status endpoint.
+# Values come straight from the stored CSV file — nothing is generated.
+TELEMETRY_COLUMNS = [
+    "cycle",
+    "voltage_mean",
+    "current_mean",
+    "temperature_mean",
+]
+
+
+def extract_latest_telemetry(bms_file):
+    """
+    Read a stored BMS CSV file and return the latest row's real readings.
+
+    Returns a dict of the telemetry columns present in the file
+    (missing columns are omitted), or None when no usable data exists.
+    This is the same "latest row" logic used by the ML assessment — it is
+    data as of the upload, NOT real-time telemetry.
+    """
+
+    df = pd.read_csv(bms_file)
+
+    available = [column for column in TELEMETRY_COLUMNS if column in df.columns]
+
+    if not available:
+        return None
+
+    df = df[available].dropna()
+
+    if df.empty:
+        return None
+
+    latest = df.iloc[-1]
+
+    return {
+        column: float(latest[column])
+        for column in available
+    }
+
 
 def run_battery_analysis(bms_file):
     """

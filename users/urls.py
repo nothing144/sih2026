@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from .views import (
     RegisterView,
@@ -8,8 +9,6 @@ from .views import (
     OwnerProfileView,
     TesterProfileView,
 )
-
-from rest_framework_simplejwt.views import TokenRefreshView
 
 
 urlpatterns = [
@@ -34,11 +33,17 @@ urlpatterns = [
         name="tester-login"
     ),
 
-    # Token Refresh
+    # JWT token refresh/verify (frontend apiClient calls token/refresh/)
     path(
         "token/refresh/",
         TokenRefreshView.as_view(),
         name="token-refresh"
+    ),
+
+    path(
+        "token/verify/",
+        TokenVerifyView.as_view(),
+        name="token-verify"
     ),
 
     # Profile

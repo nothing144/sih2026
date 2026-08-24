@@ -5,9 +5,9 @@ from .views import (
     BatteryPassportListView,
     BatteryPassportDetailView,
     PassportVerificationListView,
-    PassportDecisionsListView,
     PassportVerifyView,
     PassportRejectView,
+    PassportDecisionsView,
     PublicPassportVerifyView,
 )
 
@@ -36,6 +36,16 @@ urlpatterns = [
     ),
 
     # =========================
+    # PUBLIC (no authentication)
+    # =========================
+
+    path(
+        "public/verify/<str:passport_id>/",
+        PublicPassportVerifyView.as_view(),
+        name="passport-public-verify"
+    ),
+
+    # =========================
     # CERTIFIED TESTER
     # =========================
 
@@ -47,7 +57,7 @@ urlpatterns = [
 
     path(
         "decisions/",
-        PassportDecisionsListView.as_view(),
+        PassportDecisionsView.as_view(),
         name="passport-decisions"
     ),
 
@@ -61,15 +71,5 @@ urlpatterns = [
         "reject/<int:pk>/",
         PassportRejectView.as_view(),
         name="passport-reject"
-    ),
-
-    # =========================
-    # PUBLIC (no auth)
-    # =========================
-
-    path(
-        "public/verify/<str:passport_id>/",
-        PublicPassportVerifyView.as_view(),
-        name="passport-public-verify"
     ),
 ]

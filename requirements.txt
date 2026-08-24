@@ -1,0 +1,21 @@
+# EV Battery Platform — backend dependencies (pinned for deployment)
+# Python 3.12+ recommended. Install: pip install -r requirements.txt
+
+Django==6.1
+djangorestframework==3.18.0
+djangorestframework-simplejwt==5.5.1
+django-cors-headers==4.9.0
+
+# Production server + static files + env loading
+gunicorn==26.1.0
+whitenoise==6.12.0
+python-dotenv==1.2.3
+
+# Database (Supabase PostgreSQL)
+psycopg2-binary==2.9.12
+
+# ML model runtime (model artifact: ml_models/soh_model_original.pkl)
+pandas==3.0.5
+numpy==2.5.2
+scikit-learn==1.6.1
+joblib==1.5.3

@@ -4,12 +4,11 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import get_object_or_404
-
+from rest_framework.views import APIView
 from .models import BatteryPassport
-from .serializers import BatteryPassportSerializer, PublicPassportVerificationSerializer
+from .serializers import BatteryPassportSerializer
 
-from users.permissions import IsEVOwner, IsCertifiedTester, IsEVOwnerOrCertifiedTester
+from users.permissions import IsEVOwner, IsCertifiedTester
 import uuid
 
 # =========================
@@ -66,30 +65,32 @@ class BatteryPassportCreateView(generics.CreateAPIView):
 
 class BatteryPassportListView(generics.ListAPIView):
     serializer_class = BatteryPassportSerializer
-    permission_classes = [IsEVOwner]
+    # EV Owners see only their own passports; Certified Testers
+    # (verification workflow) can read all passports.
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return BatteryPassport.objects.filter(
-            battery__owner=self.request.user
-        )
+        user = self.request.user
+        if user.role == "EV_OWNER":
+            return BatteryPassport.objects.filter(
+                battery__owner=user
+            )
+        return BatteryPassport.objects.all()
 
 
 class BatteryPassportDetailView(generics.RetrieveAPIView):
     serializer_class = BatteryPassportSerializer
-    permission_classes = [
-        IsAuthenticated,
-        IsEVOwnerOrCertifiedTester,
-    ]
+    # Same read rules as the list view: owners are scoped to their
+    # own passports, testers need access for the verification flow.
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == "CERTIFIED_TESTER":
-            # Testers may view any passport they are reviewing
-            return BatteryPassport.objects.all()
-        # Owners may only view their own passports
-        return BatteryPassport.objects.filter(
-            battery__owner=user
-        )
+        if user.role == "EV_OWNER":
+            return BatteryPassport.objects.filter(
+                battery__owner=user
+            )
+        return BatteryPassport.objects.all()
 
 
 # =========================
@@ -106,35 +107,6 @@ class PassportVerificationListView(generics.ListAPIView):
                 BatteryPassport.CertificationStatus.PENDING_REVIEW
             )
         )
-
-
-class PassportDecisionsListView(generics.ListAPIView):
-    """
-    Tester-only read-only list of passports that already have a decision
-    (VERIFIED or REJECTED). Optional ?status=VERIFIED|REJECTED filter.
-    """
-    serializer_class = BatteryPassportSerializer
-    permission_classes = [IsCertifiedTester]
-
-    def get_queryset(self):
-        decided_statuses = [
-            BatteryPassport.CertificationStatus.VERIFIED,
-            BatteryPassport.CertificationStatus.REJECTED,
-        ]
-
-        status_param = self.request.query_params.get("status")
-
-        if status_param is not None and status_param not in decided_statuses:
-            return BatteryPassport.objects.none()
-
-        queryset = BatteryPassport.objects.filter(
-            certification_status__in=decided_statuses
-        )
-
-        if status_param is not None:
-            queryset = queryset.filter(certification_status=status_param)
-
-        return queryset.order_by("-verified_at")
 
 
 class PassportVerifyView(generics.UpdateAPIView):
@@ -216,21 +188,79 @@ class PassportRejectView(generics.UpdateAPIView):
             status=status.HTTP_200_OK
         )
 
+# =========================
+# CERTIFIED TESTER - DECIDED PASSPORTS
+# =========================
+
+class PassportDecisionsView(generics.ListAPIView):
+    """
+    GET /api/passport/decisions/
+
+    Certified Tester only. Returns passports that already have a decision
+    (VERIFIED or REJECTED), newest decision first. Used by the tester
+    Verified / Rejected / History / Certifications pages.
+    """
+
+    serializer_class = BatteryPassportSerializer
+    permission_classes = [IsCertifiedTester]
+
+    def get_queryset(self):
+        return BatteryPassport.objects.filter(
+            certification_status__in=[
+                BatteryPassport.CertificationStatus.VERIFIED,
+                BatteryPassport.CertificationStatus.REJECTED,
+            ]
+        ).order_by("-verified_at")
+
 
 # =========================
-# PUBLIC VERIFICATION (no auth)
+# PUBLIC PASSPORT VERIFICATION
 # =========================
 
-class PublicPassportVerifyView(generics.RetrieveAPIView):
+class PublicPassportVerifyView(APIView):
     """
-    Public, read-only passport verification lookup by passport_id.
-    Returns only safe verification fields; reflects current DB status.
+    GET /api/passport/public/verify/<passport_id>/
+
+    Public (no authentication) QR/passport status lookup. Accepts the
+    passport_id string (e.g. BP-BAT-1001-AB12CD34) or the numeric pk.
+    Exposes ONLY safe, publicly verifiable information - no owner
+    personal data (email/phone) is returned.
     """
+
     permission_classes = [AllowAny]
-    serializer_class = PublicPassportVerificationSerializer
 
-    def get_object(self):
-        return get_object_or_404(
-            BatteryPassport,
-            passport_id=self.kwargs["passport_id"]
-        )
+    def get(self, request, passport_id):
+        queryset = BatteryPassport.objects.all()
+
+        if str(passport_id).isdigit():
+            queryset = queryset.filter(id=int(passport_id))
+        else:
+            queryset = queryset.filter(passport_id=passport_id)
+
+        passport = queryset.select_related(
+            "battery", "battery__owner", "verified_by"
+        ).first()
+
+        if not passport:
+            return Response(
+                {"detail": "Passport not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response({
+            "passport_id": passport.passport_id,
+            "battery_id": battery_id_of(passport),
+            "vehicle_model": passport.battery.vehicle_model if passport.battery else None,
+            "current_soh": passport.current_soh,
+            "safety_risk": passport.safety_risk,
+            "second_life_status": passport.second_life_status,
+            "certification_status": passport.certification_status,
+            "verified_at": passport.verified_at,
+            "verified_by": (
+                passport.verified_by.username if passport.verified_by else None
+            ),
+        })
+
+
+def battery_id_of(passport):
+    return passport.battery.battery_id if passport.battery else None

@@ -5,16 +5,31 @@ import joblib
 from django.conf import settings
 
 
-# Path to the trained SOH model
+# Path to the trained SOH model.
+# Deployment-safe: derived from BASE_DIR (works on any OS/host layout).
+# The artifact must ship with the deployment (backend/ml_models/soh_model_original.pkl).
 MODEL_PATH = os.path.join(
     settings.BASE_DIR,
     "ml_models",
     "soh_model_original.pkl"
 )
 
+# Lazy singleton: the model is loaded on first prediction instead of at
+# import time, so a missing/corrupt artifact cannot crash the whole server
+# during startup (migrations, collectstatic, health checks, etc.).
+final_gb_model = None
 
-# Load the trained SOH model
-final_gb_model = joblib.load(MODEL_PATH)
+
+def _get_model():
+    global final_gb_model
+    if final_gb_model is None:
+        if not os.path.exists(MODEL_PATH):
+            raise RuntimeError(
+                f"ML model artifact not found at {MODEL_PATH}. "
+                "Include backend/ml_models/ in the deployment."
+            )
+        final_gb_model = joblib.load(MODEL_PATH)
+    return final_gb_model
 
 def predict_battery_status(
     cycle,
@@ -36,7 +51,7 @@ def predict_battery_status(
         "discharge_duration": discharge_duration
     }])
 
-    soh_prediction = final_gb_model.predict(features)[0]
+    soh_prediction = _get_model().predict(features)[0]
 
     soh_prediction = max(0, min(100, soh_prediction))
 
@@ -106,7 +121,7 @@ def get_degradation_factors():
         "discharge_duration"
     ]
 
-    importances = final_gb_model.feature_importances_
+    importances = _get_model().feature_importances_
 
     factors = list(zip(feature_names, importances))
     factors.sort(key=lambda x: x[1], reverse=True)
