@@ -2,8 +2,9 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
-from .models import Battery, BMSData
-from .serializers import BatterySerializer, BMSDataSerializer
+from .models import Battery, BMSData, BMSMetrics
+from .serializers import BatterySerializer, BMSDataSerializer, BMSMetricsSerializer
+from .services import compute_bms_metrics
 from users.permissions import IsEVOwner
 
 
@@ -103,8 +104,6 @@ class BatteryDeleteView(generics.DestroyAPIView):
 
     
 
- # this will change after the model will created when my friend will give me the model field
-
 class BMSDataCreateView(generics.CreateAPIView):
     serializer_class = BMSDataSerializer
     permission_classes = [IsAuthenticated]
@@ -118,7 +117,17 @@ class BMSDataCreateView(generics.CreateAPIView):
                 "You can only upload BMS data for your own battery."
             )
 
-        serializer.save()
+        bms_data = serializer.save()
+
+        # Derive telemetry aggregates from the uploaded CSV so the
+        # dashboard can show real charge cycles / temperature / voltage.
+        try:
+            metrics = compute_bms_metrics(bms_data.file)
+            BMSMetrics.objects.create(bms_data=bms_data, **metrics)
+        except Exception:
+            # Analysis and upload still succeed even if metric extraction
+            # fails; the dashboard shows placeholders for missing metrics.
+            pass
 
 
 class BMSDataListView(generics.ListAPIView):

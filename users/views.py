@@ -63,7 +63,12 @@ class ProfileView(generics.RetrieveAPIView):
 # OWNER PROFILE
 # ============================================================
 
-class OwnerProfileView(generics.RetrieveAPIView):
+class OwnerProfileView(generics.RetrieveUpdateAPIView):
+    """
+    GET:   returns the owner's profile.
+    PATCH: updates editable fields (first_name, last_name, email, phone).
+           username and role remain read-only (UserSerializer).
+    """
 
     serializer_class = UserSerializer
     permission_classes = [

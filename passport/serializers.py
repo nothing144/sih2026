@@ -8,6 +8,10 @@ class BatteryPassportSerializer(serializers.ModelSerializer):
     battery_id = serializers.CharField(source="battery.battery_id", read_only=True)
     owner_username = serializers.CharField(source="battery.owner.username", read_only=True)
     vehicle_model = serializers.CharField(source="battery.vehicle_model", read_only=True)
+    chemistry = serializers.CharField(source="battery.chemistry", read_only=True)
+    nominal_voltage = serializers.DecimalField(
+        source="battery.nominal_voltage", read_only=True, max_digits=8, decimal_places=2
+    )
 
     class Meta:
         model = BatteryPassport
@@ -20,6 +24,8 @@ class BatteryPassportSerializer(serializers.ModelSerializer):
             "battery_id",
             "owner_username",
             "vehicle_model",
+            "chemistry",
+            "nominal_voltage",
             "current_soh",
             "safety_risk",
             "degradation_factors",
