@@ -4,6 +4,7 @@ from .views import (
     BatteryAnalysisCreateView,
     BatteryAnalysisListView,
     BatteryAnalysisDetailView,
+    BmsStatusView,
 )
 
 urlpatterns = [
@@ -31,5 +32,15 @@ urlpatterns = [
         "view/<int:pk>/",
         BatteryAnalysisDetailView.as_view(),
         name="analysis-detail"
+    ),
+
+    # =========================
+    # BMS STATUS (real stored data)
+    # =========================
+
+    path(
+        "bms/status/",
+        BmsStatusView.as_view(),
+        name="bms-status"
     ),
 ]
