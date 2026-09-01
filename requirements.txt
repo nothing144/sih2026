@@ -6,6 +6,6 @@ psycopg2-binary==2.9.12
 python-dotenv==1.2.3
 whitenoise==6.7.0
 pandas
-scikit-learn
+scikit-learn>=1.8.0
 joblib
 gunicorn

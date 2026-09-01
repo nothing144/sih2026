@@ -11,7 +11,7 @@ from django.conf import settings
 MODEL_PATH = os.path.join(
     settings.BASE_DIR,
     "ml_models",
-    "soh_model_original.pkl"
+    "soh_model_demo_trained.pkl"
 )
 
 # Lazy singleton: the model is loaded on first prediction instead of at
@@ -28,7 +28,11 @@ def _get_model():
                 f"ML model artifact not found at {MODEL_PATH}. "
                 "Include backend/ml_models/ in the deployment."
             )
-        final_gb_model = joblib.load(MODEL_PATH)
+        loaded = joblib.load(MODEL_PATH)
+        if isinstance(loaded, dict) and 'model' in loaded:
+            final_gb_model = loaded['model']
+        else:
+            final_gb_model = loaded
     return final_gb_model
 
 def predict_battery_status(
