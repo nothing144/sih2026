@@ -11,11 +11,19 @@ class BatteryPassport(models.Model):
         VERIFIED = "VERIFIED", "Verified"
         REJECTED = "REJECTED", "Rejected"
 
-    battery = models.OneToOneField(
+    battery = models.ForeignKey(
         Battery,
         on_delete=models.CASCADE,
-        related_name="passport"
+        related_name="passports"
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["battery", "analysis"],
+                name="unique_battery_analysis_passport"
+            )
+        ]
 
     analysis = models.ForeignKey(
         BatteryAnalysis,

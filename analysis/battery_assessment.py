@@ -59,9 +59,11 @@ def predict_battery_status(
 
     soh_prediction = max(0, min(100, soh_prediction))
 
-    if soh_prediction >= 80:
+    threshold = getattr(settings, 'SECOND_LIFE_SOH_THRESHOLD', 80)
+    
+    if soh_prediction >= threshold:
         risk = "LOW"
-    elif soh_prediction >= 60:
+    elif soh_prediction >= (threshold - 20):
         risk = "MEDIUM"
     else:
         risk = "HIGH"
@@ -88,12 +90,12 @@ def predict_battery_status(
             "or replacement."
         )
 
-    if soh_prediction >= 80:
+    if soh_prediction >= threshold:
         second_life = (
             "Potential candidate for second-life — "
             "certified testing required."
         )
-    elif soh_prediction >= 60:
+    elif soh_prediction >= (threshold - 20):
         second_life = (
             "Possible second-life candidate — "
             "detailed diagnostic and certified testing required."

@@ -303,3 +303,16 @@ SIMPLE_JWT = {
 # this is used for media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+# ============================================================
+# GEMINI API CONFIGURATION
+# ============================================================
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_RECOMMENDATION_API_KEY = os.environ.get("GEMINI_RECOMMENDATION_API_KEY", GEMINI_API_KEY)
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+
+# Used as the threshold for second-life recommendations.
+# If SoH > threshold, battery is considered healthy and EV_CONTINUE.
+SECOND_LIFE_SOH_THRESHOLD = 80

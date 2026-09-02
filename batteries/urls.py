@@ -9,6 +9,9 @@ from .views import (
     BMSDataCreateView,
     BMSDataListView,
     BMSDataDetailView,
+    BatteryReuseRecommendationView,
+    BatteryAIRecommendationView,
+    BatterySecondLifeReadinessView,
 )
 
 urlpatterns = [
@@ -45,6 +48,24 @@ urlpatterns = [
         "delete/<int:pk>/",
         BatteryDeleteView.as_view(),
         name="battery-delete"
+    ),
+
+    path(
+        "reuse-recommendation/<int:pk>/",
+        BatteryReuseRecommendationView.as_view(),
+        name="battery-reuse-recommendation"
+    ),
+
+    path(
+        "ai-recommendation/<int:pk>/",
+        BatteryAIRecommendationView.as_view(),
+        name="battery-ai-recommendation"
+    ),
+
+    path(
+        "second-life-readiness/<int:pk>/",
+        BatterySecondLifeReadinessView.as_view(),
+        name="battery-second-life-readiness"
     ),
 
     # -------------------------

@@ -148,3 +148,104 @@ class BMSDataDetailView(generics.RetrieveAPIView):
         return BMSData.objects.filter(
             battery__owner=self.request.user
         )
+
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+from analysis.second_life_service import generate_reuse_recommendation
+from analysis.models import BatteryAnalysis
+
+class BatteryReuseRecommendationView(APIView):
+    permission_classes = [IsAuthenticated, IsEVOwner]
+
+    def post(self, request, pk):
+        battery = get_object_or_404(Battery, pk=pk, owner=request.user)
+        analysis_id = request.data.get("analysis_id")
+        
+        if analysis_id:
+            analysis = get_object_or_404(BatteryAnalysis, pk=analysis_id, bms_data__battery=battery)
+            bms_data = analysis.bms_data
+            bms_metrics = getattr(bms_data, "metrics", None) if bms_data else None
+            recommendation = generate_reuse_recommendation(battery, bms_metrics, analysis)
+        else:
+            # Fallback to latest
+            latest_bms_data = battery.bms_uploads.order_by("-uploaded_at").first()
+            bms_metrics = getattr(latest_bms_data, "metrics", None) if latest_bms_data else None
+            
+            latest_analysis = None
+            if latest_bms_data:
+                latest_analysis = BatteryAnalysis.objects.filter(bms_data=latest_bms_data).order_by("-created_at").first()
+                
+            recommendation = generate_reuse_recommendation(battery, bms_metrics, latest_analysis)
+        
+        if "error" in recommendation:
+            return Response(recommendation, status=503)
+            
+        return Response(recommendation, status=200)
+
+from analysis.ai_recommendation_service import generate_health_recommendation
+
+class BatteryAIRecommendationView(APIView):
+    permission_classes = [IsAuthenticated] # Tester or Owner can view health recommendations
+
+    def get(self, request, pk):
+        # We allow anyone authenticated to view if they have access to the battery.
+        # Let's ensure the user is either the owner or a tester.
+        # The prompt says "Use the existing trusted backend data".
+        battery = get_object_or_404(Battery, pk=pk)
+        
+        # Check permissions: owner or a tester.
+        if battery.owner != request.user and not request.user.is_tester:
+            raise PermissionDenied("You do not have permission to access this battery's data.")
+
+        # Get the latest BMS Data and Metrics
+        latest_bms_data = battery.bms_uploads.order_by("-uploaded_at").first()
+        bms_metrics = getattr(latest_bms_data, "metrics", None) if latest_bms_data else None
+        
+        # Get the latest analysis
+        latest_analysis = None
+        if latest_bms_data:
+            latest_analysis = BatteryAnalysis.objects.filter(bms_data=latest_bms_data).order_by("-created_at").first()
+
+        if not latest_analysis:
+            return Response({"error": "No battery analysis found. Run an analysis first."}, status=400)
+
+        recommendation = generate_health_recommendation(battery, latest_analysis, bms_metrics)
+        
+        if "error" in recommendation:
+            return Response(recommendation, status=503)
+            
+        return Response(recommendation, status=200)
+
+from analysis.second_life_service import generate_readiness_assessment
+
+class BatterySecondLifeReadinessView(APIView):
+    permission_classes = [IsAuthenticated, IsEVOwner]
+
+    def post(self, request, pk):
+        battery = get_object_or_404(Battery, pk=pk, owner=request.user)
+        analysis_id = request.data.get("analysis_id")
+        
+        if analysis_id:
+            analysis = get_object_or_404(BatteryAnalysis, pk=analysis_id, bms_data__battery=battery)
+            bms_data = analysis.bms_data
+            bms_metrics = getattr(bms_data, "metrics", None) if bms_data else None
+            readiness = generate_readiness_assessment(battery, bms_metrics, analysis)
+        else:
+            # Fallback to latest
+            latest_bms_data = battery.bms_uploads.order_by("-uploaded_at").first()
+            bms_metrics = getattr(latest_bms_data, "metrics", None) if latest_bms_data else None
+            
+            latest_analysis = None
+            if latest_bms_data:
+                latest_analysis = BatteryAnalysis.objects.filter(bms_data=latest_bms_data).order_by("-created_at").first()
+                
+            readiness = generate_readiness_assessment(battery, bms_metrics, latest_analysis)
+        
+        if "error" in readiness:
+            # We return 400 if it's missing SoH etc, 503 if it's a Gemini error.
+            if "required to determine" in readiness["error"]:
+                return Response(readiness, status=400)
+            return Response(readiness, status=503)
+            
+        return Response(readiness, status=200)
